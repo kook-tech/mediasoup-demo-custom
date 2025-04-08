@@ -157,11 +157,28 @@ ${HTTPIE_COMMAND} -v \
 #
 echo ">>> creating mediasoup video Producer..."
 
+# ${HTTPIE_COMMAND} -v \
+# 	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${BROADCASTER_ID}/transports/${videoTransportId}/producers \
+# 	kind="video" \
+# 	rtpParameters:="{ \"codecs\": [{ \"mimeType\":\"video/vp8\", \"payloadType\":${VIDEO_PT}, \"clockRate\":90000 }], \"encodings\": [{ \"ssrc\":${VIDEO_SSRC} }] }" \
+# 	> /dev/null
 ${HTTPIE_COMMAND} -v \
-	POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${BROADCASTER_ID}/transports/${videoTransportId}/producers \
-	kind="video" \
-	rtpParameters:="{ \"codecs\": [{ \"mimeType\":\"video/vp8\", \"payloadType\":${VIDEO_PT}, \"clockRate\":90000 }], \"encodings\": [{ \"ssrc\":${VIDEO_SSRC} }] }" \
-	> /dev/null
+  POST ${SERVER_URL}/rooms/${ROOM_ID}/broadcasters/${BROADCASTER_ID}/transports/${videoTransportId}/producers \
+  kind="video" \
+  rtpParameters:="{ 
+    \"codecs\": [{
+      \"mimeType\":\"video/H264\",
+      \"payloadType\":${VIDEO_PT},
+      \"clockRate\":90000,
+      \"parameters\": {
+        \"packetization-mode\":1,
+        \"profile-level-id\":\"42e01f\",
+        \"level-asymmetry-allowed\":1
+      }
+    }],
+    \"encodings\": [{ \"ssrc\":${VIDEO_SSRC} }]
+  }" \
+  > /dev/null
 
 #
 # Run ffmpeg command and make it send audio and video RTP with codec payload and
@@ -176,14 +193,35 @@ echo ">>> running ffmpeg..."
 # - We can add ?pkt_size=1200 to each rtp:// URI to limit the max packet size
 #   to 1200 bytes.
 #
+# ffmpeg \
+# 	-re \
+# 	-v info \
+# 	-stream_loop -1 \
+# 	-i ${MEDIA_FILE} \
+# 	-map 0:a:0 \
+# 	-acodec libopus -ab 128k -ac 2 -ar 48000 \
+# 	-map 0:v:0 \
+# 	-pix_fmt yuv420p -c:v libvpx -b:v 1000k -deadline realtime -cpu-used 4 \
+# 	-f tee \
+# 	"[select=a:f=rtp:ssrc=${AUDIO_SSRC}:payload_type=${AUDIO_PT}]rtp://${audioTransportIp}:${audioTransportPort}?rtcpport=${audioTransportRtcpPort}|[select=v:f=rtp:ssrc=${VIDEO_SSRC}:payload_type=${VIDEO_PT}]rtp://${videoTransportIp}:${videoTransportPort}?rtcpport=${videoTransportRtcpPort}"
+# ffmpeg \
+#   -v info \
+#   -stream_loop -1 \
+#   -i ${MEDIA_FILE} \
+#   -map 0:v:0 \
+#   -pix_fmt yuv420p -c:v libx264 -b:v 1000k -preset ultrafast -tune zerolatency \
+#   -f tee \
+#   "[select=v:f=rtp:ssrc=${VIDEO_SSRC}:payload_type=${VIDEO_PT}]rtp://${videoTransportIp}:${videoTransportPort}?rtcpport=${videoTransportRtcpPort}"
+
 ffmpeg \
-	-re \
-	-v info \
-	-stream_loop -1 \
-	-i ${MEDIA_FILE} \
-	-map 0:a:0 \
-	-acodec libopus -ab 128k -ac 2 -ar 48000 \
-	-map 0:v:0 \
-	-pix_fmt yuv420p -c:v libvpx -b:v 1000k -deadline realtime -cpu-used 4 \
-	-f tee \
-	"[select=a:f=rtp:ssrc=${AUDIO_SSRC}:payload_type=${AUDIO_PT}]rtp://${audioTransportIp}:${audioTransportPort}?rtcpport=${audioTransportRtcpPort}|[select=v:f=rtp:ssrc=${VIDEO_SSRC}:payload_type=${VIDEO_PT}]rtp://${videoTransportIp}:${videoTransportPort}?rtcpport=${videoTransportRtcpPort}"
+  -v info \
+  -f v4l2 -input_format yuyv422 -i /dev/video3 \
+  -map 0:v:0 \
+  -pix_fmt yuv420p -c:v libx264 -b:v 1000k -preset ultrafast -tune zerolatency \
+  -f tee \
+  "[select=v:f=rtp:ssrc=${VIDEO_SSRC}:payload_type=${VIDEO_PT}]rtp://${videoTransportIp}:${videoTransportPort}?rtcpport=${videoTransportRtcpPort}"
+
+#   -re \
+#   -pix_fmt yuv420p -c:v libvpx -b:v 1000k -deadline realtime -cpu-used 4 \
+
+# -pix_fmt yuv420p -c:v libx264 -b:v 1000k -preset ultrafast -tune zerolatency \
