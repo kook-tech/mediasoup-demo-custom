@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "mediasoup-client": "^3.9.5",
+    "mediasoup-client-aiortc": "^3.11.2",
+    "protoo-client": "^4.0.6",
+    "websocket": "^1.0.35",
+    "ws": "^8.18.1"
+  },
+  "scripts": {
+    "start": "PYTHON=$(which python3) node nodeDataProducer.js"
+  }
+}
