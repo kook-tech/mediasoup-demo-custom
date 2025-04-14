@@ -10,6 +10,8 @@ const Peers = ({ peers, activeSpeakerId }) => {
 	return (
 		<div data-component="Peers">
 			{peers.map(peer => {
+				//UI display interrupt
+				if (peer.displayName === 'DataBot') return null;
 				return (
 					<Appear key={peer.id} duration={1000}>
 						<div
