@@ -1,3 +1,15 @@
+# nodeDataProducer
+```bash
+$ cd nodeDataProducer
+$ npm install
+$ npm start
+```
+you can join into the room without browser.
+produce only data by datachannel.
+
+
+
+
 # mediasoup-demo v3
 
 A demo application of [mediasoup](https://mediasoup.org) **v3**.
